@@ -5,25 +5,37 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
-from .env import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+from .env import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET
 from .forms import CustomUserCreationForm
 
 
 def build_google_redirect_uri(request):
     scheme = 'https' if request.is_secure() else 'http'
     host = request.get_host()
-    return f"{scheme}://{host}{GOOGLE_REDIRECT_URI_PARTIAL}"
+    return f"{scheme}://{host}/auth/google/callback"
+
+
+def build_microsoft_redirect_uri(request):
+    scheme = 'https' if request.is_secure() else 'http'
+    host = request.get_host()
+    return f"{scheme}://{host}/auth/microsoft/callback"
 
 
 # Contants for Google OAuth
+GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
 GOOGLE_ACCESS_TOKEN_OBTAIN_URL = 'https://oauth2.googleapis.com/token'
 GOOGLE_USER_INFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo'
-GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
-GOOGLE_REDIRECT_URI_PARTIAL = '/auth/google/callback'
 GOOGLE_SCOPE = ' '.join([
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile'
 ])
+
+
+# Constants for Microsoft OAuth
+MICROSOFT_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+MICSOFT_ACCESS_TOKEN_OBTAIN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
+MICROSOFT_USER_INFO_URL = 'https://graph.microsoft.com/v1.0/me'
+MICROSOFT_SCOPE = 'User.Read'
 
 
 # Create your views here.
@@ -50,41 +62,41 @@ def login_view(request):
     return render(request, 'user_profile/login.html', context)
 
 
-def register_view(request):
-    if request.user and request.user.is_authenticated:
-        messages.info(request, 'You are already logged in.')
-        return redirect(reverse('user_profile:index'))
+# def register_view(request):
+#     if request.user and request.user.is_authenticated:
+#         messages.info(request, 'You are already logged in.')
+#         return redirect(reverse('user_profile:index'))
     
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
+#     if request.method == 'POST':
+#         email = request.POST.get('email')
+#         password1 = request.POST.get('password1')
+#         password2 = request.POST.get('password2')
 
-        if not email or not password1 or not password2:
-            messages.error(request, 'All fields are required. Please fill in all fields.')
-            return render(request, 'user_profile/register.html')
+#         if not email or not password1 or not password2:
+#             messages.error(request, 'All fields are required. Please fill in all fields.')
+#             return render(request, 'user_profile/register.html')
         
-        if password1 != password2:
-            messages.error(request, 'Passwords do not match. Please try again.')
-            return render(request, 'user_profile/register.html')
+#         if password1 != password2:
+#             messages.error(request, 'Passwords do not match. Please try again.')
+#             return render(request, 'user_profile/register.html')
         
-        if User.objects.filter(username=email).exists():
-            messages.error(request, 'Email is already registered. Please use a different email.')
-            return render(request, 'user_profile/register.html')
+#         if User.objects.filter(username=email).exists():
+#             messages.error(request, 'Email is already registered. Please use a different email.')
+#             return render(request, 'user_profile/register.html')
         
-        user = User.objects.create_user(
-            username=email, 
-            email=email, 
-            password=password1
-        )
-        user.save()
+#         user = User.objects.create_user(
+#             username=email, 
+#             email=email, 
+#             password=password1
+#         )
+#         user.save()
         
-        login(request, user)
-        messages.success(request, 'You have been registered and logged in successfully.')
-        return redirect(reverse('user_profile:index'))
+#         login(request, user)
+#         messages.success(request, 'You have been registered and logged in successfully.')
+#         return redirect(reverse('user_profile:index'))
 
-    context = {}
-    return render(request, 'user_profile/register.html', context)
+#     context = {}
+#     return render(request, 'user_profile/register.html', context)
 
 
 def register_with_form_view(request):
@@ -98,20 +110,22 @@ def register_with_form_view(request):
             try:
                 user = form.save(commit=False)
 
-                target_email = form.cleaned_data['email']
+                target_email = form.cleaned_data['username']
                 print("TARGET_EMAIL:", target_email)
                 
-                if User.objects.filter(username=user.email).exists():
+                if User.objects.filter(username=target_email).exists():
                     messages.error(request, 'Email is already registered. Please use a different email.')
                     return render(request, 'user_profile/register_with_form.html', {'form': form})
 
-                user.username = target_email
+                user.email = target_email
                 user.save()
                 login(request, user)
                 messages.success(request, 'You have been registered and logged in successfully.')
                 return redirect(reverse('user_profile:index'))
             except:
                 messages.error(request, f'An error occurred during registration')
+        else:        
+            return render(request, 'user_profile/register_with_form.html', {'form': form})
     
     form = CustomUserCreationForm()
     context = {
@@ -154,7 +168,7 @@ def google_callback(request):
     token_response = requests.post(GOOGLE_ACCESS_TOKEN_OBTAIN_URL, data=token_data)
     access_token = token_response.json().get('access_token')
 
-    print("ACCESS_TOKEN:", access_token)
+    print("GOOGLE ACCESS_TOKEN:", access_token)
     
     # get user info
     user_info_response = requests.get(
@@ -163,7 +177,7 @@ def google_callback(request):
     )
     user_data = user_info_response.json()
 
-    print("USER_DATA:", user_data)
+    print("GOOGLE USER_DATA:", user_data)
     
     email = user_data.get('email')
     # name = user_data.get('name')
@@ -173,7 +187,68 @@ def google_callback(request):
     if not user:
         user = User.objects.create_user(
             username=email, 
-            email=email, 
+            email=email,
+            first_name=user_data.get('given_name', ''),
+            last_name=user_data.get('family_name', ''), 
+        )
+        user.save()
+
+    login(request, user)
+    
+    return redirect(reverse('user_profile:index'))
+
+
+
+def microsoft_login(request):
+    if request.user and request.user.is_authenticated:
+        messages.info(request, 'You are already logged in.')
+        return redirect(reverse('user_profile:index'))
+    
+    # Build the Microsoft authorization URL
+    target = f"{MICROSOFT_AUTH_URL}?client_id={MICROSOFT_CLIENT_ID}&response_type=code&redirect_uri={build_microsoft_redirect_uri(request)}&scope={MICROSOFT_SCOPE}"
+    return redirect(target)
+
+
+def microsoft_callback(request):
+    code = request.GET.get('code')
+    
+    if not code:
+        messages.error(request, 'Authorization failed.')
+        return redirect(reverse('authentication:login'))
+    
+    # Exchange code for access token
+    token_data = {
+        'code': code,
+        'client_id': MICROSOFT_CLIENT_ID,
+        'client_secret': MICROSOFT_CLIENT_SECRET,
+        'redirect_uri': build_microsoft_redirect_uri(request),
+        'grant_type': 'authorization_code',
+    }
+    
+    token_response = requests.post(MICSOFT_ACCESS_TOKEN_OBTAIN_URL, data=token_data)
+    access_token = token_response.json().get('access_token')
+
+    print("MICROSOFT ACCESS_TOKEN:", access_token)
+    
+    # Get user info
+    user_info_response = requests.get(
+        MICROSOFT_USER_INFO_URL,
+        headers={'Authorization': f'Bearer {access_token}'}
+    )
+    user_data = user_info_response.json()
+
+    print("MICROSOFT USER_DATA:", user_data)
+    
+    email = user_data.get('mail') or user_data.get('userPrincipalName')
+
+    user = User.objects.filter(username=email).first()
+    
+    if not user:
+        user = User.objects.create_user(
+            username=email, 
+            email=email,
+            first_name=user_data.get('givenName', ''),
+            last_name=user_data.get('surname', ''), 
         )
         user.save()
 

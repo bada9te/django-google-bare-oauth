@@ -34,7 +34,7 @@
                     <p>Please log in to view your profile.</p>
                     <div class="d-flex flex-row gap-2">
                         <a href="{% url 'authentication:login' %}" class="btn btn-primary">Login</a>
-                        <a href="{% url 'authentication:register_with_form' %}" class="btn btn-primary">Register</a>
+                        <a href="{% url 'authentication:register' %}" class="btn btn-primary">Register</a>
                     </div>
                 {% endif %}
             {% endblock body %}
