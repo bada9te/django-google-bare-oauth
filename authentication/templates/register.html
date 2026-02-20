@@ -1,7 +1,7 @@
 {% extends 'user_profile/index.html' %}
 
 {% block body %}
-    <form method="post" action="{% url 'authentication:login' %}">
+    <form method="post" action="{% url 'authentication:register' %}">
         {% csrf_token %}
         <div class="mb-3">
             <label for="exampleInputEmail1" class="form-label">Email address</label>
@@ -10,18 +10,18 @@
         </div>
         <div class="mb-3">
             <label for="exampleInputPassword1" class="form-label">Password</label>
-            <input type="password" class="form-control" id="exampleInputPassword1" name="password">
+            <input type="password" class="form-control" id="exampleInputPassword1" name="password1">
+        </div>
+        <div class="mb-3">
+            <label for="exampleInputPassword2" class="form-label">Confirm Password</label>
+            <input type="password" class="form-control" id="exampleInputPassword2" name="password2">
         </div>
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 
     <br/>
-    <p>Use social login methods:</p>
-    <ul>
-        <li><a href="{% url 'authentication:google_login' %}">Login with Google</a></li>
-        <li><a href="{% url 'authentication:microsoft_login' %}">Login with Microsoft</a></li>
-    </ul>
+    
+    {% include 'socials_list.html' %}
 
-    <p>Don't have an account? <a href="{% url 'authentication:register' %}">Register here</a>.</p>
-
+    <p>Already have an account? <a href="{% url 'authentication:login' %}">Login here</a>.</p>
 {% endblock body %}

@@ -1,0 +1,32 @@
+{% load static %}
+{% load django_bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+
+
+{% if request.user.is_authenticated %}
+    <div class="card text-center">
+        <div class="card-body">
+            <img src="{% static 'default_user_icon.png' %}" alt="profile-picture" width="64" height="64" class="d-inline-block align-text-top">
+            <h1 class="card-title">{{ request.user.username }}</h1>
+            <p class="card-text">Some kind of simple account page</p>
+            <form action="" method="post" class="form text-start">
+                {% csrf_token %}
+                {% bootstrap_form form %}
+                <button type="submit" class="btn btn-outline-primary w-100">Update user info</button>
+            </form>
+            <hr>
+            <a href="{% url 'authentication:logout' %}" class="btn btn-outline-danger w-100">Logout</a>
+        </div>
+    </div>
+{% else %}
+    <div class="card text-center">
+        <div class="card-body">
+            <h2 class="card-title fw-bold">Please log in to view your profile</h2>
+            <div class="d-flex flex-row mt-3 gap-2">
+                <a href="{% url 'authentication:login' %}" class="btn btn-outline-primary w-100">Login</a>
+                <a href="{% url 'authentication:register' %}" class="btn btn-outline-dark w-100">Register</a>
+            </div>
+        </div>
+    </div>
+{% endif %}

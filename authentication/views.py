@@ -10,7 +10,6 @@ from .utils.google_oauth import *
 from .utils.microsoft_oauth import *
 
 
-
 # Create your views here.
 def login_view(request):
     if request.user and request.user.is_authenticated:
@@ -29,10 +28,10 @@ def login_view(request):
             return redirect(reverse('user_profile:index'))
         else:
             messages.error(request, 'Invalid email or password. Please try again.')
-            return render(request, 'user_profile/login.html')
+            return render(request, 'login.html')
     
     context = {}
-    return render(request, 'user_profile/login.html', context)
+    return render(request, 'login.html', context)
 
 
 # def register_view(request):
@@ -80,31 +79,28 @@ def register_with_form_view(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            try:
-                user = form.save(commit=False)
+            user = form.save(commit=False)
 
-                target_email = form.cleaned_data['username']
-                print("TARGET_EMAIL:", target_email)
-                
-                if User.objects.filter(username=target_email).exists():
-                    messages.error(request, 'Email is already registered. Please use a different email.')
-                    return render(request, 'user_profile/register_with_form.html', {'form': form})
+            target_email = form.cleaned_data['username']
+            print("TARGET_EMAIL:", target_email)
+            
+            if User.objects.filter(username=target_email).exists():
+                messages.error(request, 'Email is already registered. Please use a different email.')
+                return render(request, 'register_with_form.html', {'form': form})
 
-                user.email = target_email
-                user.save()
-                login(request, user)
-                messages.success(request, 'You have been registered and logged in successfully.')
-                return redirect(reverse('user_profile:index'))
-            except:
-                messages.error(request, f'An error occurred during registration')
+            user.email = target_email
+            user.save()
+            login(request, user)
+            messages.success(request, 'You have been registered and logged in successfully.')
+            return redirect(reverse('user_profile:index'))
         else:        
-            return render(request, 'user_profile/register_with_form.html', {'form': form})
+            return render(request, 'register_with_form.html', {'form': form})
     
     form = CustomUserCreationForm()
     context = {
         "form": form
     }
-    return render(request, 'user_profile/register_with_form.html', context)
+    return render(request, 'register_with_form.html', context)
 
 
 def logout_view(request):

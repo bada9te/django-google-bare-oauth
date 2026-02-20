@@ -1,0 +1,25 @@
+{% extends 'user_profile/index.html' %}
+{% load django_bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+
+{% block body %}
+<div class="card">
+    <div class="card-body">
+
+        <h1 class="card-title fw-bold">Sign up</h1>
+        
+        <form action="" method="post" class="form">
+            {% csrf_token %}
+            {% bootstrap_form form %}
+            <button type="submit" class="btn btn-primary w-100">Create new account</button>
+        </form>
+
+        <br/>
+
+        {% include 'socials_list.html' %}
+
+        <p>Already have an account? <a href="{% url 'authentication:login' %}">Login here</a>.</p>
+    </div>
+</div>
+{% endblock body %}

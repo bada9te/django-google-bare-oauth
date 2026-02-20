@@ -38,11 +38,9 @@ class CustomUserCreationForm(UserCreationForm):
         )
     )
 
-
     def clean_username(self):
         email = self.cleaned_data.get('username')
         if User.objects.filter(username=email).exists():
             raise forms.ValidationError('This email address is already registered.')
         return email
-
-        
+         

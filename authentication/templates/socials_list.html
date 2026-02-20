@@ -1,0 +1,16 @@
+{% load static %}
+<p>Or, use social accounts</p>
+<ul class="list-group mb-3 w">
+    <li class="list-group-item d-flex align-items-center justify-content-between gap-2">
+        <a href="{% url 'authentication:google_login' %}" class="text-decoration-none w-100">
+            <img src="{% static 'google_logo.png' %}" alt="" width="24" height="24" class="d-inline-block align-text-top">
+            Google
+        </a>
+    </li>
+    <li class="list-group-item d-flex align-items-center justify-content-between gap-2">
+        <a href="{% url 'authentication:microsoft_login' %}" class="text-decoration-none w-100">
+            <img src="{% static 'microsoft_logo.png' %}" alt="" width="24" height="24" class="d-inline-block align-text-top">
+            Microsoft
+        </a>
+    </li>
+</ul>
