@@ -5,37 +5,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
-from .env import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET
 from .forms import CustomUserCreationForm
 
+from .utils.google_oauth import *
+from .utils.microsoft_oauth import *
 
-def build_google_redirect_uri(request):
-    scheme = 'https' if request.is_secure() else 'http'
-    host = request.get_host()
-    return f"{scheme}://{host}/auth/google/callback"
-
-
-def build_microsoft_redirect_uri(request):
-    scheme = 'https' if request.is_secure() else 'http'
-    host = request.get_host()
-    return f"{scheme}://{host}/auth/microsoft/callback"
-
-
-# Contants for Google OAuth
-GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
-GOOGLE_ACCESS_TOKEN_OBTAIN_URL = 'https://oauth2.googleapis.com/token'
-GOOGLE_USER_INFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo'
-GOOGLE_SCOPE = ' '.join([
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile'
-])
-
-
-# Constants for Microsoft OAuth
-MICROSOFT_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
-MICSOFT_ACCESS_TOKEN_OBTAIN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
-MICROSOFT_USER_INFO_URL = 'https://graph.microsoft.com/v1.0/me'
-MICROSOFT_SCOPE = 'User.Read'
 
 
 # Create your views here.
@@ -145,7 +119,7 @@ def google_login(request):
         messages.info(request, 'You are already logged in.')
         return redirect(reverse('user_profile:index'))
     
-    target = f"{GOOGLE_AUTH_URL}?client_id={GOOGLE_CLIENT_ID}&redirect_uri={build_google_redirect_uri(request)}&response_type=code&scope={GOOGLE_SCOPE}&access_type=offline&prompt=consent"
+    target = google_oauth_get_login_screen_url(request)
     return redirect(target)
 
 
@@ -157,26 +131,12 @@ def google_callback(request):
         return redirect(reverse('authentication:login'))
     
     # exchange code for access token
-    token_data = {
-        'code': code,
-        'client_id': GOOGLE_CLIENT_ID,
-        'client_secret': GOOGLE_CLIENT_SECRET,
-        'redirect_uri': build_google_redirect_uri(request),
-        'grant_type': 'authorization_code',
-    }
     
-    token_response = requests.post(GOOGLE_ACCESS_TOKEN_OBTAIN_URL, data=token_data)
-    access_token = token_response.json().get('access_token')
-
-    print("GOOGLE ACCESS_TOKEN:", access_token)
+    access_token = google_oauth_get_access_token(code, request)
+    # print("GOOGLE ACCESS_TOKEN:", access_token)
     
     # get user info
-    user_info_response = requests.get(
-        GOOGLE_USER_INFO_URL,
-        headers={'Authorization': f'Bearer {access_token}'}
-    )
-    user_data = user_info_response.json()
-
+    user_data = google_oauth_get_user_info_json(access_token)
     print("GOOGLE USER_DATA:", user_data)
     
     email = user_data.get('email')
@@ -205,7 +165,7 @@ def microsoft_login(request):
         return redirect(reverse('user_profile:index'))
     
     # Build the Microsoft authorization URL
-    target = f"{MICROSOFT_AUTH_URL}?client_id={MICROSOFT_CLIENT_ID}&response_type=code&redirect_uri={build_microsoft_redirect_uri(request)}&scope={MICROSOFT_SCOPE}"
+    target = microsoft_oauth_get_login_screen_url(request)
     return redirect(target)
 
 
@@ -217,26 +177,11 @@ def microsoft_callback(request):
         return redirect(reverse('authentication:login'))
     
     # Exchange code for access token
-    token_data = {
-        'code': code,
-        'client_id': MICROSOFT_CLIENT_ID,
-        'client_secret': MICROSOFT_CLIENT_SECRET,
-        'redirect_uri': build_microsoft_redirect_uri(request),
-        'grant_type': 'authorization_code',
-    }
-    
-    token_response = requests.post(MICSOFT_ACCESS_TOKEN_OBTAIN_URL, data=token_data)
-    access_token = token_response.json().get('access_token')
-
-    print("MICROSOFT ACCESS_TOKEN:", access_token)
+    access_token = microsoft_oauth_get_access_token(code, request)
+    # print("MICROSOFT ACCESS_TOKEN:", access_token)
     
     # Get user info
-    user_info_response = requests.get(
-        MICROSOFT_USER_INFO_URL,
-        headers={'Authorization': f'Bearer {access_token}'}
-    )
-    user_data = user_info_response.json()
-
+    user_data = microsoft_oauth_get_user_info_json(access_token)
     print("MICROSOFT USER_DATA:", user_data)
     
     email = user_data.get('mail') or user_data.get('userPrincipalName')
